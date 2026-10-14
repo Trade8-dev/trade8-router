@@ -493,7 +493,13 @@ impl sentin8::shield::admin::HasPolicyAdmin for RouterState {
 // + the admin read gate, over `oneshot` with the harness JWKS issuer.
 // The DB leg asserts the counter reset through the service role.
 // ---------------------------------------------------------------------------
-#[cfg(test)]
+// The harness inside references `sentin8_auth::jwks` — the Auth SERVER
+// crate — which this repo never declared as a dependency (no vertical
+// pins the auth server; imports go through the platform SDK facade,
+// which does not re-export jwks). It therefore never compiled as-is.
+// Disabled pending the SDK-side test-harness OIDC stand-in surface
+// (backlog story T8-HARNESS-1).
+#[cfg(all(test, feature = "handler_tests"))]
 mod admin_alias_tests {
     use super::*;
     use axum::body::Body;
