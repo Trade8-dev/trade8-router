@@ -46,19 +46,19 @@ never plaintext) and every fill is an outbox event.
 graph TD
     subgraph desk[Trade8:Desk]
         DE[order:accepted event]
-        CATS[(desk.destination/gateway/market_gateway_destination/office_broker/msg_template)]
+        CATS["(desk.destination/gateway/market_gateway_destination/office_broker/msg_template)"]
     end
     subgraph router[Trade8:Router process]
         CONSUMER[desk-family consumer] --> RES[Route resolution + template render]
         RES --> SES[Session states + seq leases]
         SES --> JRN[router.message journal]
-        EXEC[inbound execution reports<br/>POST /v1/internal/executions/{dest}] --> NORM[Execution normalizer + charger]
-        NORM --> FILLTX[(router.order_transaction + fill_fix_tags + outbox, one tx)]
-        CONSUMER --> ROUTETX[(router.session lease + journal + order:routed event, one tx)]
+        EXEC["inbound execution reports<br/>POST /v1/internal/executions/{dest}"] --> NORM[Execution normalizer + charger]
+        NORM --> FILLTX["(router.order_transaction + fill_fix_tags + outbox, one tx)"]
+        CONSUMER --> ROUTETX["(router.session lease + journal + order:routed event, one tx)"]
     end
     DE -- "SSE (group trade8:router)" --> CONSUMER
     CATS -- "declared SELECT grants" --> RES
-    JRN -- same tx --> PG[(router schema, db trade8)]
+    JRN -- same tx --> PG["(router schema, db trade8)"]
     FILLTX -- outbox rows --> REL[Shell relay] --> BUS[sentin8:bus]
     PNL[Trade8:Pnl] -- consume trade8:router:fill:executed --> BUS
     RISK[Trade8:Risk] -- consume router family --> BUS

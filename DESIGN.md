@@ -27,8 +27,8 @@
 ```mermaid
 graph TD
     subgraph desk[Trade8:Desk — catalog owner]
-        DCAT[(desk.destination / gateway / market_gateway_destination / office_broker / msg_template)]
-        DEVT[trade8:desk:order:accepted + :order:routed (router emits)]
+        DCAT["(desk.destination / gateway / market_gateway_destination / office_broker / msg_template)"]
+        DEVT["trade8:desk:order:accepted + :order:routed (router emits)"]
     end
     subgraph router[Trade8:Router]
         CON[desk consumer: route → render → journal → routed event]
@@ -41,7 +41,7 @@ graph TD
         CRON[sentin8:cron]
         SYS[sentin8:sys]
         AUTH[sentin8:auth + Shield]
-        DB[(db trade8 / schema router)]
+        DB["(db trade8 / schema router)"]
     end
     subgraph external[External venues]
         BRK[Brokers — FIX 4.2/4.4, OUCH 3.1]
@@ -71,9 +71,9 @@ graph TD
         OPS --> P[Shield gates: session:manage / session:read / journal:read]
         OPS --> ST[store.rs]
         CONC[desk consumer task] --> WIRE[wiring.rs: load routes/templates, render, lease, journal]
-        EXECR[execution callback /v1/internal/executions/{dest}] --> NORM[core.rs normalize + charger]
-        NORM --> FILLTX[(fills + fix tags + outbox, one tx)]
-        WIRE --> SESS[(router.session + router.message)]
+        EXECR["execution callback /v1/internal/executions/{dest}"] --> NORM[core.rs normalize + charger]
+        NORM --> FILLTX["(fills + fix tags + outbox, one tx)"]
+        WIRE --> SESS["(router.session + router.message)"]
         HB[heartbeat watchdog task] --> SESS
     end
 ```
@@ -91,7 +91,7 @@ sequenceDiagram
     B->>C: trade8:desk:order:accepted (SSE, M2M)
     C->>R: resolve(market, office) → destination (or drop + warn)
     C->>R: render template/codec default → wire bytes (price scaled to decimal)
-    C->>DB: set context; begin(tx)
+    C->>DB: set context, begin(tx)
     C->>DB: UPDATE router.session SET outgoing_seq = outgoing_seq + 1 RETURNING (atomic lease)
     C->>DB: append journal row (direction out, seq, msg_type D, payload)
     C->>O: insert order:routed event row (same tx)
@@ -99,7 +99,7 @@ sequenceDiagram
         C-->>B: Nack → redelivery (lease rolled back)
     else ok
         C-->>B: ACK
-        Note over O,DB: live destinations deliver (socket path / HTTP adapter); shadow journals only
+    Note over B,O: live destinations deliver (socket path / HTTP adapter), shadow journals only
     end
 ```
 
@@ -115,7 +115,7 @@ sequenceDiagram
     participant O as router.outbox
     GW->>H: normalized broker report (M2M, trade8:router:executions:report)
     H->>N: parse (ExecutionReport / OUCH inbound)
-    N->>N: map exec type → FillState; charge fees; preserve FIX tags
+    N->>N: map exec type → FillState, charge fees, preserve FIX tags
     H->>DB: begin(tx) + set context
     H->>DB: INSERT order_transaction + fill_fix_tags + outbox(fill:executed|cancelled|rejected)
     alt any insert fails
