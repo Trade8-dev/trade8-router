@@ -1,4 +1,4 @@
-# BUSINESS.md: Trade8:Router — Business Requirements & Functionality
+# Trade8:Router — Business Requirements & Functionality
 
 > Audience: product owners, business analysts, and anyone evaluating what
 > Trade8:Router **does for the business**. For architecture read `README.md`;
