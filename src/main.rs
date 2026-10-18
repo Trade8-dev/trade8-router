@@ -12,6 +12,7 @@
 mod admin_ui;
 mod core;
 mod registration;
+mod openapi;
 mod store;
 mod wiring;
 
@@ -105,8 +106,19 @@ fn extend_router(
             get(|| async { Json(serde_json::json!({"status": "ok", "service": "trade8:router", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash()})) }),
         )
 }
+#[utoipa::path(
+    get,
+    path = "/v1/sessions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "router",
+)]
 
-async fn list_sessions(
+pub(crate) async fn list_sessions(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
@@ -163,8 +175,19 @@ async fn list_sessions(
         }
     }
 }
+#[utoipa::path(
+    post,
+    path = "/v1/sessions/{id}/reset",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "router",
+)]
 
-async fn reset_session(
+pub(crate) async fn reset_session(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
     Path(id): Path<uuid::Uuid>,
@@ -212,9 +235,20 @@ async fn reset_session(
         serde_json::json!({"destination_id": id, "reset": true}),
     ))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/messages",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "router",
+)]
 
 /// Journal read: DB window + engine tail fallback.
-async fn list_messages(
+pub(crate) async fn list_messages(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
     Query(q): Query<std::collections::HashMap<String, String>>,
@@ -274,9 +308,20 @@ async fn list_messages(
         }
     }
 }
+#[utoipa::path(
+    post,
+    path = "/v1/journal/purge",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "router",
+)]
 
 /// Retention purge — the Cron proxy-back target. Default 30 days.
-async fn purge_old(
+pub(crate) async fn purge_old(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
     body: Option<Json<serde_json::Value>>,
@@ -321,12 +366,23 @@ async fn purge_old(
     tx.commit().await.ok(); // dropping an uncommitted tx rolls back
     Ok(Json(serde_json::json!({"purged": purged, "days": days})))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/internal/executions/{destination}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "router-internal",
+)]
 
 /// Inbound execution callback (gateway adapter /
 /// OUCH shard proxy-back): a normalized Fill + preserved FIX tags. The
 /// fill persists `order_transaction` + `fill_fix_tags` + the fill outbox
 /// event in one tx; idempotent on transaction_id (redelivery → no-op).
-async fn report_execution(
+pub(crate) async fn report_execution(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
     Path(destination): Path<uuid::Uuid>,

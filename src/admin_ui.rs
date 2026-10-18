@@ -59,6 +59,17 @@ fn card(title: &str, body: &str) -> RemoteWidget {
         actions: vec![],
     })
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/ui/{page}",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "trade8-admin",
+)]
 
 /// `GET /v1/admin/ui/{page}` — RFW definitions.
 pub async fn get_admin_ui(
@@ -130,6 +141,17 @@ pub async fn get_admin_ui(
 }
 
 type Qp = std::collections::HashMap<String, String>;
+#[utoipa::path(
+    get,
+    path = "/v1/admin/sessions",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "trade8-admin",
+)]
 
 /// `GET /v1/admin/sessions` — session rows from the DB.
 pub async fn admin_sessions(
@@ -181,6 +203,17 @@ pub async fn admin_sessions(
         )
         .collect::<Vec<_>>())))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/journal",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "trade8-admin",
+)]
 
 /// `GET /v1/admin/journal` — journal window (latest N frames, hex preview).
 pub async fn admin_journal(
@@ -233,6 +266,17 @@ pub async fn admin_journal(
         })
         .collect::<Vec<_>>())))
 }
+#[utoipa::path(
+    get,
+    path = "/v1/admin/fees",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "trade8-admin",
+)]
 
 /// `GET /v1/admin/fees` — charger formula table (engine copy).
 pub async fn admin_fees(
@@ -271,6 +315,17 @@ pub async fn admin_fees(
         .collect();
     Ok(Json(serde_json::json!(rows)))
 }
+#[utoipa::path(
+    post,
+    path = "/v1/admin/sessions/{id}/reset",
+    responses(
+        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 401, description = "Not authenticated"),
+        (status = 403, description = "Forbidden"),
+    ),
+    security(),
+    tag = "trade8-admin",
+)]
 
 /// `POST /v1/admin/sessions/{id}/reset` — RFW POST-alias reset.
 pub async fn admin_reset_session(
