@@ -106,11 +106,127 @@ fn extend_router(
             get(|| async { Json(serde_json::json!({"status": "ok", "service": "trade8:router", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash()})) }),
         )
 }
+// ── Typed response DTOs (OAPEC-9) ──────────────────────────────────────
+
+/// Liveness/build identity (OAPEC-9 typed body).
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct HealthInfo {
+    /// Always `ok` while serving.
+    pub status: String,
+    /// The service identifier.
+    pub service: String,
+    /// The build version.
+    pub version: String,
+    /// The build hash.
+    pub build: String,
+}
+
+/// One session row.
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct SessionRow {
+    /// The FIX destination id.
+    pub destination_id: uuid::Uuid,
+    /// The session state.
+    pub state: String,
+    /// Outbound sequence.
+    pub outgoing_seq: u64,
+    /// Inbound sequence.
+    pub incoming_seq: u64,
+}
+
+/// Sessions list.
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct SessionsResponse {
+    /// The destination sessions.
+    pub sessions: Vec<SessionRow>,
+}
+
+/// Reset ack.
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct SessionResetAck {
+    /// The reset destination.
+    pub destination_id: uuid::Uuid,
+    /// Always `true`.
+    pub reset: bool,
+}
+
+/// One journal/FIX message row.
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct MsgRow {
+    /// Journal sequence.
+    pub seq: i64,
+    /// The destination.
+    pub destination_id: uuid::Uuid,
+    /// Direction (in/out).
+    pub direction: String,
+    /// FIX message type.
+    pub msg_type: String,
+    /// Wire size.
+    pub size: i64,
+    /// When recorded.
+    pub at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Messages list.
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct MessagesResponse {
+    /// The journal rows.
+    pub messages: Vec<MsgRow>,
+}
+
+/// Purge request (default 30 days, clamped 1..365).
+#[derive(Debug, serde::Deserialize, Default, utoipa::ToSchema)]
+pub struct PurgeRequest {
+    /// Retention days (clamped 1..365).
+    #[serde(default)]
+    pub days: Option<i64>,
+}
+
+/// Purge ack.
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct PurgeAck {
+    /// Journal rows purged.
+    pub purged: i64,
+    /// The effective retention days.
+    pub days: i64,
+}
+
+/// FIX-tag (tag, value) pair.
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+pub struct FixTag {
+    /// The FIX tag number.
+    pub tag: u32,
+    /// The tag value.
+    pub value: String,
+}
+
+/// Execution report request (Router proxy-back from Trading).
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
+pub struct ExecutionReport {
+    /// The fill to apply.
+    pub fill: trade8::contracts::Fill,
+    /// The owning trader (fallback: fill's account).
+    #[serde(default)]
+    pub usr_id: Option<String>,
+    /// Extra FIX tags for the blotter audit.
+    #[serde(default)]
+    pub fix_tags: Option<Vec<FixTag>>,
+}
+
+/// Execution apply ack.
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ExecutionApplied {
+    /// The blotter transaction id.
+    pub transaction_id: uuid::Uuid,
+    /// Whether the fill was applied.
+    pub applied: bool,
+}
+
 #[utoipa::path(
     get,
     path = "/v1/sessions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Destination sessions", body = SessionsResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -121,7 +237,7 @@ fn extend_router(
 pub(crate) async fn list_sessions(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<SessionsResponse>, (axum::http::StatusCode, String)> {
     let a = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     sentin8::shell::policy::require(
         &st.core.admin.policy,
@@ -149,29 +265,30 @@ pub(crate) async fn list_sessions(
         }
     };
     match store::bootstrap_sessions(&mut tx, env).await {
-        Ok(rows) => Ok(Json(serde_json::json!({"sessions": rows.into_iter().map(
-            |(destination_id, outgoing_seq, incoming_seq, state)| {
-                serde_json::json!({
-                    "destination_id": destination_id, "state": state,
-                    "outgoing_seq": outgoing_seq, "incoming_seq": incoming_seq,
+        Ok(rows) => Ok(Json(SessionsResponse {
+            sessions: rows
+                .into_iter()
+                .map(|(destination_id, outgoing_seq, incoming_seq, state)| SessionRow {
+                    destination_id,
+                    state,
+                    outgoing_seq: outgoing_seq.max(0) as u64,
+                    incoming_seq: incoming_seq.max(0) as u64,
                 })
-            }
-        ).collect::<Vec<_>>()}))),
+                .collect(),
+        })),
         Err(e) => {
             tracing::warn!(error = %e, "trade8:router: sessions DB read failed; engine memory");
             let sessions = st.engine.sessions.read();
-            let rows: Vec<serde_json::Value> = sessions
+            let rows: Vec<SessionRow> = sessions
                 .values()
-                .map(|s| {
-                    serde_json::json!({
-                        "destination_id": s.destination_id,
-                        "state": if s.logged_in { "logged_in" } else { "down" },
-                        "outgoing_seq": s.outgoing_seq,
-                        "incoming_seq": s.incoming_seq,
-                    })
+                .map(|s| SessionRow {
+                    destination_id: s.destination_id,
+                    state: if s.logged_in { "logged_in" } else { "down" }.to_string(),
+                    outgoing_seq: s.outgoing_seq,
+                    incoming_seq: s.incoming_seq,
                 })
                 .collect();
-            Ok(Json(serde_json::json!({"sessions": rows})))
+            Ok(Json(SessionsResponse { sessions: rows }))
         }
     }
 }
@@ -179,7 +296,7 @@ pub(crate) async fn list_sessions(
     post,
     path = "/v1/sessions/{id}/reset",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Session reset", body = SessionResetAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -191,7 +308,7 @@ pub(crate) async fn reset_session(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
     Path(id): Path<uuid::Uuid>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<SessionResetAck>, (axum::http::StatusCode, String)> {
     let auth = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     sentin8::shell::policy::require(
         &st.core.admin.policy,
@@ -231,15 +348,16 @@ pub(crate) async fn reset_session(
     entry.outgoing_seq = 0;
     entry.incoming_seq = 0;
     tracing::info!(destination = %id, actor = %auth.claims.sub, "session sequence reset");
-    Ok(Json(
-        serde_json::json!({"destination_id": id, "reset": true}),
-    ))
+    Ok(Json(SessionResetAck {
+        destination_id: id,
+        reset: true,
+    }))
 }
 #[utoipa::path(
     get,
     path = "/v1/messages",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Journal rows", body = MessagesResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -252,7 +370,7 @@ pub(crate) async fn list_messages(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
     Query(q): Query<std::collections::HashMap<String, String>>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<MessagesResponse>, (axum::http::StatusCode, String)> {
     let a = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     sentin8::shell::policy::require(
         &st.core.admin.policy,
@@ -284,35 +402,46 @@ pub(crate) async fn list_messages(
         }
     };
     match store::read_journal(&mut tx, env, None, 0, limit).await {
-        Ok(rows) => Ok(Json(serde_json::json!({"messages": rows.into_iter().map(
-            |(seq, destination_id, direction, msg_type, payload, at)| {
-                serde_json::json!({
-                    "seq": seq, "destination_id": destination_id,
-                    "direction": direction, "msg_type": msg_type,
-                    "size": payload.len(), "at": at,
+        Ok(rows) => Ok(Json(MessagesResponse {
+            messages: rows
+                .into_iter()
+                .map(|(seq, destination_id, direction, msg_type, payload, at)| MsgRow {
+                    seq,
+                    destination_id,
+                    direction,
+                    msg_type: msg_type.unwrap_or_default(),
+                    size: payload.len() as i64,
+                    at,
                 })
-            }
-        ).collect::<Vec<_>>()}))),
+                .collect(),
+        })),
         Err(e) => {
             tracing::warn!(error = %e, "trade8:router: journal DB read failed; engine tail");
             let sessions = st.engine.sessions.read();
-            let rows: Vec<serde_json::Value> = sessions
+            let rows: Vec<MsgRow> = sessions
                 .values()
-                .flat_map(|s| {
-                    s.journal.iter().map(
-                        |b| serde_json::json!({"destination_id": s.destination_id, "len": b.len()}),
-                    )
+                .enumerate()
+                .flat_map(|(i, s)| {
+                    s.journal.iter().enumerate().map(move |(j, b)| MsgRow {
+                        seq: -((i as i64) * 1_000_000 + j as i64), // engine-tail rows are ephemeral: negative synthetic seq
+                        destination_id: s.destination_id,
+                        direction: "out".into(),
+                        msg_type: "frame".into(),
+                        size: b.len() as i64,
+                        at: chrono::Utc::now(),
+                    })
                 })
                 .collect();
-            Ok(Json(serde_json::json!({"messages": rows})))
+            Ok(Json(MessagesResponse { messages: rows }))
         }
     }
 }
 #[utoipa::path(
     post,
     path = "/v1/journal/purge",
+    request_body = PurgeRequest,
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Purge result", body = PurgeAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -324,8 +453,8 @@ pub(crate) async fn list_messages(
 pub(crate) async fn purge_old(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
-    body: Option<Json<serde_json::Value>>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+    body: Option<Json<PurgeRequest>>,
+) -> Result<Json<PurgeAck>, (axum::http::StatusCode, String)> {
     let auth = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     // scope. The Cron retention proxy-back. Step 5 -
     // Shield decides on the session-manage action.
@@ -339,8 +468,7 @@ pub(crate) async fn purge_old(
     let env = auth.env_id();
     let days = body
         .as_ref()
-        .and_then(|Json(b)| b.get("days"))
-        .and_then(|v| v.as_i64())
+        .and_then(|Json(b)| b.days)
         .unwrap_or(30)
         .clamp(1, 365) as i32;
     let mut conn = st
@@ -364,13 +492,17 @@ pub(crate) async fn purge_old(
         .map_err(sentin8::shell::err_db)?;
     tracing::info!(days, purged, actor = %auth.claims.sub, "journal retention purge");
     tx.commit().await.ok(); // dropping an uncommitted tx rolls back
-    Ok(Json(serde_json::json!({"purged": purged, "days": days})))
+    Ok(Json(PurgeAck {
+        purged: purged as i64,
+        days: days as i64,
+    }))
 }
 #[utoipa::path(
     post,
     path = "/v1/internal/executions/{destination}",
+    request_body = ExecutionReport,
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Fill applied", body = ExecutionApplied),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -386,7 +518,7 @@ pub(crate) async fn report_execution(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
     Path(destination): Path<uuid::Uuid>,
-    Json(body): Json<serde_json::Value>,
+    Json(body): Json<ExecutionReport>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     let auth = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     sentin8::shell::policy::require(
@@ -398,31 +530,15 @@ pub(crate) async fn report_execution(
     .await?;
     let env = auth.env_id();
     // Decode the fill (the contracts Fill shape).
-    let Ok(fill): Result<trade8::contracts::Fill, _> =
-        serde_json::from_value(body.get("fill").cloned().unwrap_or_default())
-    else {
-        return Err((axum::http::StatusCode::BAD_REQUEST, "fill required".into()));
-    };
-    let usr_id = body
-        .get("usr_id")
-        .and_then(|v| v.as_str())
-        .unwrap_or_default()
-        .to_string();
+    let fill: trade8::contracts::Fill = body.fill;
+    let usr_id = body.usr_id.clone().unwrap_or_default();
     // FIX-tag preservation: [{tag, value}] pairs.
     let fix_tags: Vec<(u32, String)> = body
-        .get("fix_tags")
-        .and_then(|v| v.as_array())
-        .map(|a| {
-            a.iter()
-                .filter_map(|t| {
-                    Some((
-                        t.get("tag")?.as_u64()? as u32,
-                        t.get("value")?.as_str()?.to_string(),
-                    ))
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+        .fix_tags
+        .unwrap_or_default()
+        .into_iter()
+        .map(|t| (t.tag, t.value))
+        .collect::<Vec<_>>();
     let mut conn = st
         .core
         .pool

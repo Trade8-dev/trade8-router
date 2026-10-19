@@ -63,7 +63,7 @@ fn card(title: &str, body: &str) -> RemoteWidget {
     get,
     path = "/v1/admin/ui/{page}",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "OK", body = sentin8::rfw::AdminUiResponse),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -145,7 +145,7 @@ type Qp = std::collections::HashMap<String, String>;
     get,
     path = "/v1/admin/sessions",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Admin rows", body = Vec<serde_json::Value>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -157,7 +157,7 @@ type Qp = std::collections::HashMap<String, String>;
 pub async fn admin_sessions(
     State(st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<Vec<serde_json::Value>>, (axum::http::StatusCode, String)> {
     let a = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     sentin8::shell::policy::require(
         &st.core.admin.policy,
@@ -190,7 +190,7 @@ pub async fn admin_sessions(
     .fetch_all(&mut *conn)
     .await
     .map_err(sentin8::shell::err_db)?;
-    Ok(Json(serde_json::json!(rows
+    Ok(Json(rows
         .into_iter()
         .map(
             |(destination_id, outgoing_seq, incoming_seq, state, last_heartbeat)| {
@@ -201,13 +201,13 @@ pub async fn admin_sessions(
                 })
             }
         )
-        .collect::<Vec<_>>())))
+        .collect::<Vec<_>>()))
 }
 #[utoipa::path(
     get,
     path = "/v1/admin/journal",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Admin rows", body = Vec<serde_json::Value>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -220,7 +220,7 @@ pub async fn admin_journal(
     State(st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
     Query(q): Query<Qp>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<Vec<serde_json::Value>>, (axum::http::StatusCode, String)> {
     let a = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     sentin8::shell::policy::require(
         &st.core.admin.policy,
@@ -248,7 +248,7 @@ pub async fn admin_journal(
     let rows = crate::store::read_journal(&mut conn, env, dest, 0, limit)
         .await
         .map_err(sentin8::shell::err_db)?;
-    Ok(Json(serde_json::json!(rows
+    Ok(Json(rows
         .into_iter()
         .map(|(seq, destination_id, direction, msg_type, payload, at)| {
             // hex preview - the wall never shows raw control bytes
@@ -264,13 +264,13 @@ pub async fn admin_journal(
                 "preview_hex": preview, "at": at,
             })
         })
-        .collect::<Vec<_>>())))
+        .collect::<Vec<_>>()))
 }
 #[utoipa::path(
     get,
     path = "/v1/admin/fees",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Admin rows", body = Vec<serde_json::Value>),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -282,7 +282,7 @@ pub async fn admin_journal(
 pub async fn admin_fees(
     State(st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<Vec<serde_json::Value>>, (axum::http::StatusCode, String)> {
     let _a = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     sentin8::shell::policy::require(
         &st.core.admin.policy,
@@ -313,13 +313,13 @@ pub async fn admin_fees(
             serde_json::json!({"name": name, "kind": kind, "params": params})
         })
         .collect();
-    Ok(Json(serde_json::json!(rows)))
+    Ok(Json(rows))
 }
 #[utoipa::path(
     post,
     path = "/v1/admin/sessions/{id}/reset",
     responses(
-        (status = 200, description = "OK", body = serde_json::Value),
+        (status = 200, description = "Session reset", body = crate::SessionResetAck),
         (status = 401, description = "Not authenticated"),
         (status = 403, description = "Forbidden"),
     ),
@@ -332,7 +332,7 @@ pub async fn admin_reset_session(
     State(st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
     Path(id): Path<uuid::Uuid>,
-) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+) -> Result<Json<crate::SessionResetAck>, (axum::http::StatusCode, String)> {
     let a = sentin8::shell::verify_token(&st.core.config, &headers).await?;
     sentin8::shell::policy::require(
         &st.core.admin.policy,
@@ -358,7 +358,8 @@ pub async fn admin_reset_session(
         entry.incoming_seq = 0;
     }
     tracing::info!(destination = %id, actor = %a.claims.sub, "session reset (admin)");
-    Ok(Json(
-        serde_json::json!({"destination_id": id, "reset": true}),
-    ))
+    Ok(Json(crate::SessionResetAck {
+        destination_id: id,
+        reset: true,
+    }))
 }
