@@ -109,7 +109,7 @@
         "tags": [
           "trade8-admin"
         ],
-        "summary": "`GET /v1/admin/fees` — charger formula table (engine copy).",
+        "summary": "`GET /v1/admin/fees` - charger formula table (engine copy).",
         "operationId": "admin_fees",
         "responses": {
           "200": {
@@ -135,7 +135,7 @@
         "tags": [
           "trade8-admin"
         ],
-        "summary": "`GET /v1/admin/journal` — journal window (latest N frames, hex preview).",
+        "summary": "`GET /v1/admin/journal` - journal window (latest N frames, hex preview).",
         "operationId": "admin_journal",
         "responses": {
           "200": {
@@ -587,7 +587,7 @@
         "tags": [
           "trade8-admin"
         ],
-        "summary": "`GET /v1/admin/sessions` — session rows from the DB.",
+        "summary": "`GET /v1/admin/sessions` - session rows from the DB.",
         "operationId": "admin_sessions",
         "responses": {
           "200": {
@@ -613,7 +613,7 @@
         "tags": [
           "trade8-admin"
         ],
-        "summary": "`POST /v1/admin/sessions/{id}/reset` — RFW POST-alias reset.",
+        "summary": "`POST /v1/admin/sessions/{id}/reset` - RFW POST-alias reset.",
         "operationId": "admin_reset_session",
         "responses": {
           "200": {
@@ -639,7 +639,7 @@
         "tags": [
           "trade8-admin"
         ],
-        "summary": "`GET /v1/admin/ui/{page}` — RFW definitions.",
+        "summary": "`GET /v1/admin/ui/{page}` - RFW definitions.",
         "operationId": "get_admin_ui",
         "responses": {
           "200": {
@@ -711,7 +711,7 @@
         "tags": [
           "router"
         ],
-        "summary": "Retention purge — the Cron proxy-back target. Default 30 days.",
+        "summary": "Retention purge - the Cron proxy-back target. Default 30 days.",
         "operationId": "purge_old",
         "responses": {
           "200": {
@@ -814,7 +814,7 @@
   "tags": [
     {
       "name": "router",
-      "description": "Trade8:Router — execution routing"
+      "description": "Trade8:Router - execution routing"
     },
     {
       "name": "trade8-admin",

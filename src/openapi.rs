@@ -61,7 +61,7 @@ crate::openapi::w::router_health,
     components(schemas()),
     security(),
     tags(
-        (name = "router", description = "Trade8:Router — execution routing"),
+        (name = "router", description = "Trade8:Router - execution routing"),
         (name = "trade8-admin", description = "Trade8 admin surface (RFW)"),
         (name = "policy", description = "Shield policy administration (shared surface)"),
     ),

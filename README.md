@@ -1,4 +1,4 @@
-# README.md: Trade8:Router — Broker Connectivity Service
+# README.md: Trade8:Router - Broker Connectivity Service
 
 > Audience: anyone evaluating or onboarding to the service. For the
 > wire-level construction read `DESIGN.md`; for business functionality read
@@ -32,7 +32,7 @@ Broker connectivity concentrates three painful requirements:
   those differences as *data*, admin-managed, not code branches.
 - **Fills as the platform's financial truth.** PnL, Risk and reporting all
   derive from fills; Router normalizes every broker message into one
-  internal event shape with fees, liquidity, and preserved FIX tags — the
+  internal event shape with fees, liquidity, and preserved FIX tags - the
   single write point for execution state.
 
 Before the platform, this lived in gateway daemons with per-venue server
@@ -67,26 +67,26 @@ graph TD
 ```
 
 Shadow destinations (gateway `env_mode = 'shadow'`) render and journal but
-never transmit — parity/certification testing without broker impact.
+never transmit - parity/certification testing without broker impact.
 
 ## 4. Key Traits and Data Structures
 
-- **`RouterEngine`** (`core.rs`) — `sessions`, `routes`, `charger` handles;
+- **`RouterEngine`** (`core.rs`) - `sessions`, `routes`, `charger` handles;
   `build_new_order` (codec + journal), `observe_inbound` (gap detection).
-- **`DestinationLink`** — one destination row as used for routing: protocol,
+- **`DestinationLink`** - one destination row as used for routing: protocol,
   sender/target CompIDs, begin string, shadow flag, heartbeat, seq-reset
   policy (loaded from Desk's schema via declared grants).
-- **`RouteTable`** — market → destination priority list plus office→broker
+- **`RouteTable`** - market → destination priority list plus office→broker
   overrides; `resolve(market, office)`.
-- **`SessionState`** — per-destination out/in sequence numbers, logon state,
+- **`SessionState`** - per-destination out/in sequence numbers, logon state,
   heartbeat mark, journal tail; `next_out_seq` (daily rollover resets),
   `observe_in_seq` → resend window.
 - **`Charger`** + `FeeFormula` (`PerShare` / `PerOrder` / `PercentNotional` /
-  `Banded`) — the fee DSL evaluated at fill-normalization time.
-- **`MsgTemplate` / `TemplateField` / `TemplateSource`** (`wiring.rs`) —
+  `Banded`) - the fee DSL evaluated at fill-normalization time.
+- **`MsgTemplate` / `TemplateField` / `TemplateSource`** (`wiring.rs`) -
   typed, versioned outbound message templates rendered onto an
   `OrderContext` (const / order-field / config value sources).
-- **Codecs** — `trade8::fix` (FIX 4.2/4.4 client-role session + order entry)
+- **Codecs** - `trade8::fix` (FIX 4.2/4.4 client-role session + order entry)
   and `trade8::ouch` (OUCH 3.1 client-role) render/parse the wire.
 
 ## 5. Rationale, Trade-offs, and Alternatives
@@ -111,7 +111,7 @@ never transmit — parity/certification testing without broker impact.
   `router.fill_fix_tags` were relocated from Desk: one writer per financial
   record; desk learns of fills through events. Rejected: dual-written fill
   tables (the classic divergence this platform exists to remove).
-- **Mimalloc allocator** (master design §11) — steady low latency on the
+- **Mimalloc allocator** (master design §11) - steady low latency on the
   journal/normalize path.
 
 ## 6. Internal Implementation & Invariants (Private Design)
@@ -120,7 +120,7 @@ never transmit — parity/certification testing without broker impact.
 
 - Every outbound message is journaled (`router.message`, direction out) in
   the same transaction as the session lease and (for accepted orders) the
-  `trade8:desk:order:routed` event — journal and state cannot diverge.
+  `trade8:desk:order:routed` event - journal and state cannot diverge.
 - Outbound sequence leases are atomic `UPDATE ... RETURNING` on
   `router.session`; two concurrent orders for one destination get disjoint
   sequence numbers.
@@ -130,7 +130,7 @@ never transmit — parity/certification testing without broker impact.
   map to `fill:executed` with the corrected quantities; fills are persisted
   with their fee breakdown and preserved broker FIX tags in one tx with the
   outbox row.
-- Heartbeat watchdog marks sessions down after a stale interval — the state
+- Heartbeat watchdog marks sessions down after a stale interval - the state
   machine (down/connecting/logged_in) is DB-backed, so restarts resume.
 - RLS context + explicit env filters on every router query; cross-schema
   reads are only the five declared desk catalog tables.
@@ -139,17 +139,17 @@ never transmit — parity/certification testing without broker impact.
 
 ## 7. Unresolved Questions / Future Designs
 
-- **Native FIX/OUCH TCP socket shards** — handshake, heartbeat frames, and
+- **Native FIX/OUCH TCP socket shards** - handshake, heartbeat frames, and
   reconnect/backoff against the codecs are designed (session state machines,
   resend windows all-tested); dial-out wiring to live broker endpoints is
   the remaining socket-transport work.
-- **Resend/recovery ring** — the journal is the durability layer; resend on
-  reconnect replays from `router.message` (design §4.1) — the replay
+- **Resend/recovery ring** - the journal is the durability layer; resend on
+  reconnect replays from `router.message` (design §4.1) - the replay
   driver is not yet exercised end-to-end against a live session.
-- **Template validation surfacing** — admin template viewer exists; the
+- **Template validation surfacing** - admin template viewer exists; the
   validation-results page (render dry-runs against sample orders) is a
   natural follow-up.
-- **Exchange8 adapter framing** — HTTP delivery exists; the binary gateway
+- **Exchange8 adapter framing** - HTTP delivery exists; the binary gateway
   protocol adapter (stream bytes vs HTTP octets) needs the venue-side
   contract to finalize.
 

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Trade8:Router
 // SPDX-License-Identifier: Apache-2.0
 
-//! Trade8:Router service binary — FIX/OUCH broker gateways.
+//! Trade8:Router service binary - FIX/OUCH broker gateways.
 //!
 //! Design: `../router/DESIGN.md`.
 //! Core in `core.rs`; shell wires the HTTP/TLS surface.
@@ -39,7 +39,7 @@ fn extend_router(
         .route("/v1/sessions/{id}/reset", post(reset_session))
         .route("/v1/messages", get(list_messages))
         .route("/v1/journal/purge", post(purge_old))
-        // Inbound executions — the gateway
+        // Inbound executions - the gateway
         // adapter / OUCH session shards call back with normalized fills.
         .route(
             "/v1/internal/executions/{destination}",
@@ -102,7 +102,7 @@ fn extend_router(
             "/v1/health",
             // Carries the binary's build identity (`version`/`build`,
             // BUILDID-1) so captain's monitor populates `make status`'s
-            // VERSION column — the consuming BINARY's identity.
+            // VERSION column - the consuming BINARY's identity.
             get(|| async { Json(serde_json::json!({"status": "ok", "service": "trade8:router", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash()})) }),
         )
 }
@@ -139,7 +139,7 @@ pub(crate) async fn list_sessions(
         .await
         .map_err(sentin8::shell::err_db)?;
     sentin8::shell::set_tenant_context(&mut conn, env).await;
-    // RLS context is transaction-local (DESIGN.md §5) —
+    // RLS context is transaction-local (DESIGN.md §5) -
     // begin() pins the tenant context to the SAME tx as the DML/reads.
     let mut tx = match conn.begin().await {
         Ok(t) => t,
@@ -209,7 +209,7 @@ pub(crate) async fn reset_session(
         .await
         .map_err(sentin8::shell::err_db)?;
     sentin8::shell::set_tenant_context(&mut conn, env).await;
-    // RLS context is transaction-local (DESIGN.md §5) —
+    // RLS context is transaction-local (DESIGN.md §5) -
     // begin() pins the tenant context to the SAME tx as the DML/reads.
     let mut tx = match conn.begin().await {
         Ok(t) => t,
@@ -274,7 +274,7 @@ pub(crate) async fn list_messages(
         .await
         .map_err(sentin8::shell::err_db)?;
     sentin8::shell::set_tenant_context(&mut conn, env).await;
-    // RLS context is transaction-local (DESIGN.md §5) —
+    // RLS context is transaction-local (DESIGN.md §5) -
     // begin() pins the tenant context to the SAME tx as the DML/reads.
     let mut tx = match conn.begin().await {
         Ok(t) => t,
@@ -320,14 +320,14 @@ pub(crate) async fn list_messages(
     tag = "router",
 )]
 
-/// Retention purge — the Cron proxy-back target. Default 30 days.
+/// Retention purge - the Cron proxy-back target. Default 30 days.
 pub(crate) async fn purge_old(
     State(st): State<Arc<RouterState>>,
     headers: axum::http::HeaderMap,
     body: Option<Json<serde_json::Value>>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     let auth = sentin8::shell::verify_token(&st.core.config, &headers).await?;
-    // scope. The Cron retention proxy-back. Step 5 —
+    // scope. The Cron retention proxy-back. Step 5 -
     // Shield decides on the session-manage action.
     sentin8::shell::policy::require(
         &st.core.admin.policy,
@@ -350,7 +350,7 @@ pub(crate) async fn purge_old(
         .await
         .map_err(sentin8::shell::err_db)?;
     sentin8::shell::set_tenant_context(&mut conn, env).await;
-    // RLS context is transaction-local (DESIGN.md §5) —
+    // RLS context is transaction-local (DESIGN.md §5) -
     // begin() pins the tenant context to the SAME tx as the DML/reads.
     let mut tx = match conn.begin().await {
         Ok(t) => t,
@@ -430,7 +430,7 @@ pub(crate) async fn report_execution(
         .await
         .map_err(sentin8::shell::err_db)?;
     sentin8::shell::set_tenant_context(&mut conn, env).await;
-    // RLS context is transaction-local (DESIGN.md §5) —
+    // RLS context is transaction-local (DESIGN.md §5) -
     // begin() pins the tenant context to the SAME tx as the DML/reads.
     let mut tx = match conn.begin().await {
         Ok(t) => t,
@@ -442,7 +442,7 @@ pub(crate) async fn report_execution(
     // Observe the inbound sequence (gap detection → resend).
     if let Some(seq) = fill.seq_number {
         if let Some((from, until)) = st.engine.observe_inbound(destination, seq) {
-            tracing::warn!(destination = %destination, from, until, "router: inbound gap — resend window");
+            tracing::warn!(destination = %destination, from, until, "router: inbound gap - resend window");
         }
     }
     match wiring::persist_fill(&mut tx, env, &fill, &usr_id, &fix_tags).await {
@@ -547,8 +547,8 @@ impl sentin8::shield::admin::HasPolicyAdmin for RouterState {
 // + the admin read gate, over `oneshot` with the harness JWKS issuer.
 // The DB leg asserts the counter reset through the service role.
 // ---------------------------------------------------------------------------
-// The harness inside references `sentin8_auth::jwks` — the Auth SERVER
-// crate — which this repo never declared as a dependency (no vertical
+// The harness inside references `sentin8_auth::jwks` - the Auth SERVER
+// crate - which this repo never declared as a dependency (no vertical
 // pins the auth server; imports go through the platform SDK facade,
 // which does not re-export jwks). It therefore never compiled as-is.
 // Disabled pending the SDK-side test-harness OIDC stand-in surface
@@ -572,7 +572,7 @@ mod admin_alias_tests {
     }
 
     /// Ephemeral OIDC stand-in (discovery + JWKS + claim minting from
-    /// the real test keys) — the desk handler-test harness shape.
+    /// the real test keys) - the desk handler-test harness shape.
     struct Harness {
         issuer: String,
         keys: sentin8_auth::jwks::SigningKeys,

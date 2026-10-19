@@ -168,7 +168,7 @@ async fn journal_append_read_filter() {
     assert_eq!(rows[0].0, SEQ_BASE);
     assert_eq!(rows[0].4, b"one".to_vec());
     // No filter returns both, ordered by seq (scoped to the test's own
-    // destinations — the table may hold rows from other runs/services).
+    // destinations - the table may hold rows from other runs/services).
     let all = {
         let mut tx = conn.begin().await.unwrap();
         let v = store::read_journal(&mut tx, env_a(), None, SEQ_BASE, 10)
@@ -325,7 +325,7 @@ async fn session_counters_upsert_and_reset() {
 }
 
 /// The wiring's outbound-seq lease (UPDATE…RETURNING) hands out disjoint
-/// contiguous blocks — the platform's atomic-lease convention.
+/// contiguous blocks - the platform's atomic-lease convention.
 #[tokio::test]
 async fn outbound_seq_lease_is_atomic() {
     let Some(mut conn) = router_conn().await else {

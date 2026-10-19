@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Trade8:Router
 // SPDX-License-Identifier: Apache-2.0
 
-//! Router gateway core — destination model, session state
+//! Router gateway core - destination model, session state
 //! machines, execution normalization, and the fee charger.
 //!
 //! Design: `../router/DESIGN.md` §4.
@@ -104,7 +104,7 @@ impl SessionState {
         self.outgoing_seq
     }
 
-    /// Observe an inbound sequence — gap detection returns the resend
+    /// Observe an inbound sequence - gap detection returns the resend
     /// window.
     pub fn observe_in_seq(&mut self, seq: u64) -> Option<(u64, u64)> {
         if seq > self.incoming_seq + 1 {
@@ -134,7 +134,7 @@ pub enum FeeFormula {
     Banded(Vec<(i128, i128)>),
 }
 
-/// The charger — evaluates gateway fees on fills ( DSL:
+/// The charger - evaluates gateway fees on fills ( DSL:
 /// per_share / per_order / percent_notional / banded).
 #[derive(Debug, Default)]
 pub struct Charger {
@@ -190,7 +190,7 @@ pub fn normalize_exec_report(order_id: Uuid, er: &ExecutionReport, fees: FeeBrea
     };
     let qty = er.last_qty.unwrap_or(0);
     // FIX price strings are decimal; scale to the instrument by the
-    // caller — here we parse at ×10⁴ (equity default).
+    // caller - here we parse at ×10⁴ (equity default).
     let price_raw = er
         .last_px
         .as_deref()
@@ -374,7 +374,7 @@ mod tests {
         assert!(bytes.starts_with(b"8=FIX.4.2"));
         assert_eq!(s.journal.len(), 1);
         assert_eq!(s.outgoing_seq, 1);
-        // shadow destinations never dial out — the transport pass checks
+        // shadow destinations never dial out - the transport pass checks
         // env_mode_live before connecting; the journal keeps the mirror.
         assert!(!dest.env_mode_live);
     }

@@ -3,17 +3,17 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Trade8:Router
 // SPDX-License-Identifier: Apache-2.0
 
-//! Router runtime wiring — the desk-order consumer and execution persistence.
+//! Router runtime wiring - the desk-order consumer and execution persistence.
 //!
 //! The desk-order consumer consumes `trade8:desk:order:accepted` from
 //! the `desk` family, resolves the destination (route table + office
 //! overrides), renders the outbound message through the typed
 //! `desk.msg_template` or the codec default, journals it (same-tx outbox
-//! insert of `order:routed`), and — for live destinations with an HTTP
-//! gateway-style endpoint — delivers it. Shadow destinations journal only.
+//! insert of `order:routed`), and - for live destinations with an HTTP
+//! gateway-style endpoint - delivers it. Shadow destinations journal only.
 //!
 //! Inbound executions arrive on the router's own HTTP surface
-//! (`POST /v1/internal/executions/{destination}`) — gateway adapters call
+//! (`POST /v1/internal/executions/{destination}`) - gateway adapters call
 //! back with normalized fills; each fill persists `order_transaction` +
 //! `fill_fix_tags` + the `fill:executed` outbox event in one tx.
 
@@ -29,7 +29,7 @@ use uuid::Uuid;
 use crate::core::{DestinationLink, RouterEngine};
 
 // ---------------------------------------------------------------------------
-// Message templates — typed field-source maps
+// Message templates - typed field-source maps
 // ---------------------------------------------------------------------------
 
 /// One template field: FIX tag ← value source.
@@ -82,7 +82,7 @@ pub struct OrderContext {
 
 impl MsgTemplate {
     /// Render the template fields onto a FixMessage (tag order follows
-    /// the field list; unknown order fields are skipped — the codec's
+    /// the field list; unknown order fields are skipped - the codec's
     /// standard fields are added by the builder, not the template).
     pub fn render(&self, ctx: &OrderContext) -> Vec<(u32, String)> {
         self.fields
@@ -235,7 +235,7 @@ pub async fn load_routes(
     .bind(env_id)
     .fetch_all(&mut *conn)
     .await?;
-    // All queries done — take the write guard for the sync mutation only
+    // All queries done - take the write guard for the sync mutation only
     // (parking_lot guards are !Send; never held across an await).
     let mut table = engine.routes.write();
     for (market_id, mut destinations) in by_market {
@@ -253,7 +253,7 @@ pub async fn load_routes(
 // ---------------------------------------------------------------------------
 
 /// Persist a normalized fill: `order_transaction` row + FIX-tag
-/// preservation + `fill:executed` outbox event — one tx. Idempotent on
+/// preservation + `fill:executed` outbox event - one tx. Idempotent on
 /// transaction_id (PK conflict → already applied).
 pub async fn persist_fill(
     conn: &mut PgConnection,
@@ -306,7 +306,7 @@ pub async fn persist_fill(
     .execute(&mut *conn)
     .await?;
     if res.rows_affected() == 0 {
-        // Redelivery — already applied (at-least-once + idempotent PK).
+        // Redelivery - already applied (at-least-once + idempotent PK).
         return Ok(false);
     }
     // Broker-dialect tags preserved for audit.
@@ -324,7 +324,7 @@ pub async fn persist_fill(
         .execute(&mut *conn)
         .await?;
     }
-    // The fill event — payload-complete for Pnl/Risk consumers (usr_id +
+    // The fill event - payload-complete for Pnl/Risk consumers (usr_id +
     // qty + price + fees; no consumer callback needed).
     insert_fill_outbox(conn, env_id, fill, usr_id).await?;
     Ok(true)
@@ -399,7 +399,7 @@ pub fn spawn_desk_consumer(
     let auth_issuer = auth_issuer.to_string();
     tokio::spawn(async move {
         // Cert-presenting Bus client (CERTFREE-4V): the `trade8:router`
-        // workload CERTIFICATE is the identity — no DCR, no token; the
+        // workload CERTIFICATE is the identity - no DCR, no token; the
         // mint retries while the fleet boots.
         let bus = loop {
             match sentin8::bus::client::BusClient::for_workload(
@@ -452,7 +452,7 @@ async fn route_accepted_order(
     // Route resolution.
     let dest_id = engine.routes.read().resolve(market_id, &office_id);
     let Some(dest_id) = dest_id else {
-        tracing::warn!(order_id = %order_id, "router: no route for market — drop");
+        tracing::warn!(order_id = %order_id, "router: no route for market - drop");
         return HandleOutcome::Ack;
     };
     let ctx = OrderContext {
@@ -468,7 +468,7 @@ async fn route_accepted_order(
         qty: p["qty"]["raw"].as_u64().unwrap_or(0).to_string(),
         price: p["price"]["raw"].as_i64().map(|raw| {
             // Scale back to decimal string for the FIX wire (price_raw at
-            // its own scale — Order carries it in price.scale).
+            // its own scale - Order carries it in price.scale).
             let scale = p["price"]["scale"].as_u64().unwrap_or(4) as u8;
             let p10 = 10u128.pow(scale as u32);
             let int = raw as i128 / p10 as i128;
@@ -483,21 +483,21 @@ async fn route_accepted_order(
     let mut conn = match pool.acquire().await {
         Ok(c) => c,
         Err(e) => {
-            tracing::warn!(error = %e, "router: route persist failed — nack for retry");
+            tracing::warn!(error = %e, "router: route persist failed - nack for retry");
             return HandleOutcome::Nack;
         }
     };
     sentin8::shell::set_tenant_context(&mut conn, env_id).await;
-    // RLS context is transaction-local (DESIGN.md §5) —
+    // RLS context is transaction-local (DESIGN.md §5) -
     // begin() pins the tenant context to the SAME tx as the DML/reads.
     let mut tx = match conn.begin().await {
         Ok(t) => t,
         Err(e) => {
-            tracing::warn!(error = %e, "router: route tx begin failed — nack");
+            tracing::warn!(error = %e, "router: route tx begin failed - nack");
             return HandleOutcome::Nack;
         }
     };
-    // Lease the outbound sequence (UPDATE ... RETURNING — atomic).
+    // Lease the outbound sequence (UPDATE ... RETURNING - atomic).
     let seq: Option<i64> = sqlx::query_scalar(
         r#"UPDATE router.session
            SET outgoing_seq = outgoing_seq + 1, state = 'connecting'
@@ -591,7 +591,7 @@ pub async fn deliver_http(
         .map_err(|e| format!("delivery decode failed: {e}"))
 }
 
-/// Heartbeat watchdog: per-destination liveness bookkeeping —
+/// Heartbeat watchdog: per-destination liveness bookkeeping -
 /// sessions whose last_heartbeat is older than 2× the default interval
 /// (60 s here) are marked down (state → 'down'); the socket shard
 /// re-establishes on its own reconnect cadence (backoff capped 30 s).
@@ -715,7 +715,7 @@ mod tests {
         let f = c.charge("activity_flat", 100, 101_000, "USD").unwrap();
         assert_eq!(f.amount, 3_000);
         // percent_notional: 101_000 × 100 × 3_000 / 10_000 = 3_030_000
-        // (303.00 — 0.30% of 10_100.00 notional... verify: notional at
+        // (303.00 - 0.30% of 10_100.00 notional... verify: notional at
         // money scale ×10⁴ is 101_000×100 = 10_100_000 raw-shares×price
         // = 1_010.00 ×10⁴... the invariant is fee_raw = px_raw × qty ×
         // bps / 10_000 which at price-scale ×10⁴ yields money ×10⁴).

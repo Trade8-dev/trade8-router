@@ -1,4 +1,4 @@
-# Trade8:Router — Business Requirements & Functionality
+# Trade8:Router - Business Requirements & Functionality
 
 > Audience: product owners, business analysts, and anyone evaluating what
 > Trade8:Router **does for the business**. For architecture read `README.md`;
@@ -7,10 +7,10 @@
 ## 1. Business Purpose
 
 - Connect the trading desk to **every broker and venue** the firm uses,
-  through one managed service — FIX 4.2/4.4 and OUCH 3.1 today, each as
+  through one managed service - FIX 4.2/4.4 and OUCH 3.1 today, each as
   data-driven destinations rather than bespoke integrations.
 - Guarantee that **every wire message and every fill is durably recorded**
-  and attributable (sequence numbers, preserved broker tags, fee breakdown) —
+  and attributable (sequence numbers, preserved broker tags, fee breakdown) -
   the compliance backbone of client and regulator inquiries.
 - Turn raw broker reports into **clean internal fill events** (with fees,
   liquidity, and corrected quantities) so P&L, Risk, and reporting all work
@@ -76,16 +76,16 @@
 ## 5. Business Rules & Invariants
 
 1. An accepted desk order is always journaled before (or atomically with)
-   its route acknowledgment — no unrecorded sends.
+   its route acknowledgment - no unrecorded sends.
 2. Two orders to the same destination can never get the same sequence
    number (atomic lease).
-3. Shadow destinations never send real orders — production parity testing
+3. Shadow destinations never send real orders - production parity testing
    is impossible without explicit live mode.
 4. Every fill carries its complete fee breakdown and broker FIX tags;
    corrections update rather than duplicate.
 5. Broker credentials are stored as secret references and never rendered in
    any admin surface or journal.
-6. Fills are the single source for PnL/Risk/reporting — no other service
+6. Fills are the single source for PnL/Risk/reporting - no other service
    writes execution records.
 7. The journal is retention-purged on schedule, never ad hoc.
 8. A rejected/failed send never consumes the order: the consumer retries
@@ -128,7 +128,7 @@
 
 1. An accepted desk order reaches its destination's journal with a
    contiguous sequence and a routed acknowledgment.
-2. Every broker execution appears in the blotter (via PnL/Risk) with fees —
+2. Every broker execution appears in the blotter (via PnL/Risk) with fees -
    within the trading-day budget.
 3. An operator can reset a session and see it re-establish (state wall).
 4. Compliance can reconstruct any fill's original broker wire tags.

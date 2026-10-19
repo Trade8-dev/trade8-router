@@ -18,7 +18,7 @@ path = "src/main.rs"
 
 [features]
 default = []
-# Never compiled as-is (see src/main.rs admin_alias_tests gate) —
+# Never compiled as-is (see src/main.rs admin_alias_tests gate) -
 # placeholder for the SDK-side test-harness OIDC stand-in (backlog
 # T8-HARNESS-1).
 handler_tests = []

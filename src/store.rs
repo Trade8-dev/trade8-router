@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Trade8:Router
 // SPDX-License-Identifier: Apache-2.0
 
-//! Router DB persistence — message journal + session
+//! Router DB persistence - message journal + session
 //! counters with `session:status` outbox events and Cron-driven retention.
 
 use sqlx::PgConnection;
@@ -133,7 +133,7 @@ pub async fn persist_session(
     .await
 }
 
-/// Reset counters (the `:reset` op — audited at the handler).
+/// Reset counters (the `:reset` op - audited at the handler).
 pub async fn reset_session_counters(
     conn: &mut PgConnection,
     env_id: Uuid,
@@ -177,7 +177,7 @@ pub async fn bootstrap_sessions(
     Ok(rows)
 }
 
-/// Outbox insert — drained by the shell's boot-step-8b relay to Bus.
+/// Outbox insert - drained by the shell's boot-step-8b relay to Bus.
 pub async fn insert_outbox_event(
     conn: &mut PgConnection,
     env_id: Uuid,

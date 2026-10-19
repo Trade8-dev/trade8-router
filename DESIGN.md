@@ -1,4 +1,4 @@
-# Trade8:Router — Detailed Design Document
+# Trade8:Router - Detailed Design Document
 
 > Audience: maintainers, reviewers, and architects modifying the service.
 > Overview in `README.md`; business functionality in `BUSINESS.md`.
@@ -10,13 +10,13 @@
 - All outbound broker connectivity and its session bookkeeping (sequences,
   heartbeats, logons); the wire journal (`router.message`); per-destination
   session state (`router.session`); the fills (`router.order_transaction`,
-  `router.fill_fix_tags`) — Router is the sole writer of execution records;
+  `router.fill_fix_tags`) - Router is the sole writer of execution records;
   the `router` event family (`trade8:router:*`).
 
 **Does NOT own** (delegates):
 
 - Routing catalogs → **Trade8:Desk** (`destination`, `gateway`,
-  `market_gateway_destination`, `office_broker`, `msg_template` — read via
+  `market_gateway_destination`, `office_broker`, `msg_template` - read via
   declared cross-schema grants only).
 - Order acceptance/authorization → **Trade8:Desk/Trade8:Risk**.
 - Fee *catalog* (types/formulas/params source rows: `desk.fee_catalog`) →
@@ -26,7 +26,7 @@
 
 ```mermaid
 graph TD
-    subgraph desk[Trade8:Desk — catalog owner]
+    subgraph desk[Trade8:Desk - catalog owner]
         DCAT["(desk.destination / gateway / market_gateway_destination / office_broker / msg_template)"]
         DEVT["trade8:desk:order:accepted + :order:routed (router emits)"]
     end
@@ -44,7 +44,7 @@ graph TD
         DB["(db trade8 / schema router)"]
     end
     subgraph external[External venues]
-        BRK[Brokers — FIX 4.2/4.4, OUCH 3.1]
+        BRK[Brokers - FIX 4.2/4.4, OUCH 3.1]
         X8[exchange8 Gateway adapter]
     end
     DCAT -- "declared SELECT grants" --> CON
@@ -78,7 +78,7 @@ graph TD
     end
 ```
 
-### Request lifecycle — routed order (desk consumer family)
+### Request lifecycle - routed order (desk consumer family)
 
 ```mermaid
 sequenceDiagram
@@ -103,7 +103,7 @@ sequenceDiagram
     end
 ```
 
-### Fill lifecycle — inbound executions
+### Fill lifecycle - inbound executions
 
 ```mermaid
 sequenceDiagram
@@ -179,12 +179,12 @@ erDiagram
     session ||--o{ order_transaction : "fills on this destination"
 ```
 
-- `router.message` — retention-purged via Cron (30-day default); BYTEA wire
+- `router.message` - retention-purged via Cron (30-day default); BYTEA wire
   payloads; per-destination seq ordering.
-- `router.order_transaction` — the fills (relocated from Desk; Router sole
+- `router.order_transaction` - the fills (relocated from Desk; Router sole
   writer); fee columns are ×10⁴ raw ints with currency refs preserved for
   conversion at Pnl.
-- `router.fill_fix_tags` — broker-dialect tags preserved verbatim.
+- `router.fill_fix_tags` - broker-dialect tags preserved verbatim.
 - `desk.*` reads: `destination`, `gateway`, `market_gateway_destination`,
   `office_broker`, `msg_template` (declared cross-schema grants in
   registration + init.sql grants block).
@@ -216,7 +216,7 @@ erDiagram
 
 Plus the shared Shield policy-admin API block. (Design §registration
 declares the additional destinations/templates/messages admin endpoints;
-they are implemented at the desk/router pages above — the disposition is
+they are implemented at the desk/router pages above - the disposition is
 tracked in Open Questions.)
 
 ### Events
@@ -234,21 +234,21 @@ tracked in Open Questions.)
 
 ## 5. Cross-Cutting Concerns
 
-- **AuthN/AuthZ** — 8-step pipeline; Shield targets
+- **AuthN/AuthZ** - 8-step pipeline; Shield targets
   `trade8:router:{session,executions,journal}:*`; internal execution
   callbacks are M2M-gated with the declared `executions:report` action.
-- **Tenant + RLS** — consumer/execution paths set context on the pool
+- **Tenant + RLS** - consumer/execution paths set context on the pool
   connection then `begin()`; explicit env filters; declared desk-catalog
   grants only (no blanket schema access); service role has no BYPASSRLS.
-- **Idempotency** — sequence lease is atomic per destination; fills dedupe
+- **Idempotency** - sequence lease is atomic per destination; fills dedupe
   on broker `exec_id`/transaction id; outbox rows keyed by row id.
-- **Audit** — wire journal + preserved FIX tags are the compliance record;
+- **Audit** - wire journal + preserved FIX tags are the compliance record;
   audit journal rows pushed to Sys with retry.
-- **Secrets** — `credentials_ref` is a secret reference; Router never
+- **Secrets** - `credentials_ref` is a secret reference; Router never
   persists plaintext broker credentials.
-- **TLS** — post-quantum via `sentin8-tls`; broker dial-out inherits the
+- **TLS** - post-quantum via `sentin8-tls`; broker dial-out inherits the
   platform TLS posture when endpoints support it.
-- **Graceful drain** — shell upgrade-instance drains; sessions reconnect on
+- **Graceful drain** - shell upgrade-instance drains; sessions reconnect on
   the new instance (state is DB-backed).
 
 ## 6. Failure Modes & Recovery
@@ -260,7 +260,7 @@ flowchart TD
     B -- yes --> C{lease + journal + routed event tx}
     C -- fail --> D[Nack → redelivery] --> C
     C -- ok --> E{destination live?}
-    E -- shadow --> F[journal only — no send]
+    E -- shadow --> F[journal only - no send]
     E -- live --> G[deliver: HTTP adapter now / socket shard when wired]
     G -- broker down --> H[session → connecting; backoff capped 30s]
     H --> I[heartbeat watchdog marks down; reconnect resumes leases]
@@ -268,13 +268,13 @@ flowchart TD
     L[relay outage] --> M[outbox rows unrelayed → 5s poll/NOTIFY retry]
 ```
 
-- **Broker session loss** — watchdog marks down after stale heartbeat;
+- **Broker session loss** - watchdog marks down after stale heartbeat;
   reconnect re-logs on (seq-continuation or reset per policy).
-- **Inbound gap** — resend window computed from the journal; gaps replay
+- **Inbound gap** - resend window computed from the journal; gaps replay
   from stored messages.
-- **Transaction failure** — consumer Nacks; leases roll back; redelivery
+- **Transaction failure** - consumer Nacks; leases roll back; redelivery
   re-leases (deduped by idempotency semantics downstream).
-- **Purge safety** — the purge deletes only rows older than retention and
+- **Purge safety** - the purge deletes only rows older than retention and
   runs inside a scheduled window.
 
 ## 7. Concurrency & Performance Model
@@ -299,12 +299,12 @@ graph LR
 
 1. Fills are written exactly once per broker execution and only by Router;
    no other service holds insert grants on `router.order_transaction`.
-2. Outbound wire messages exist in the journal iff the lease happened —
+2. Outbound wire messages exist in the journal iff the lease happened -
    one tx, no partial delivery states.
 3. Shadow sessions never transmit; the journal keeps their mirror.
 4. Plaintext broker credentials are never stored (secret refs only) and
    never echoed through admin surfaces.
-5. Fee formulas are data, evaluated by the tested DSL — no free-text
+5. Fee formulas are data, evaluated by the tested DSL - no free-text
    formula execution.
 6. No `unsafe` blocks; codecs verify checksums (FIX) and frame lengths
    (OUCH) and reject malformed input.
@@ -329,16 +329,16 @@ graph TD
 
 ## 10. Open Questions
 
-- **Socket transport for FIX/OUCH dial-out** — final wiring of the session
+- **Socket transport for FIX/OUCH dial-out** - final wiring of the session
   state machines to live TCP/TLS endpoints (designed; the HTTP adapter
   pattern is implemented for exchange8-style gateways).
-- **Registration/admin endpoint parity** — `registration.rs` declares
+- **Registration/admin endpoint parity** - `registration.rs` declares
   `/v1/admin/templates`, `/v1/admin/messages`, `/v1/admin/destinations`
   data endpoints that `main.rs` does not route yet (the destinations editor
   lives in Desk's admin pages): implement or prune the declarations.
-- **Fee condition predicates** — the design's condition DSL (typed
+- **Fee condition predicates** - the design's condition DSL (typed
   predicates) vs free `fee_catalog` params: which surface admins edit.
-- **Resend-from-journal driver** — the end-to-end resend loop needs a live
+- **Resend-from-journal driver** - the end-to-end resend loop needs a live
   session to be exercised; add a session-sim fixture to the integration
   layer.
 

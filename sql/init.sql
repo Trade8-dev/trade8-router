@@ -3,11 +3,11 @@
 -- SPDX-FileCopyrightText: Copyright Contributors to the Trade8:Router
 -- SPDX-License-Identifier: Apache-2.0
 
--- Trade8:Router — broker sessions, destination links, templates, fees.
+-- Trade8:Router - broker sessions, destination links, templates, fees.
 --
 -- Design: ../router/DESIGN.md §4.2,
 -- data-model §2.1 (broker/gateway/destination/msg_template/fee).
--- Credentials are secret references — never values (platform rule).
+-- Credentials are secret references - never values (platform rule).
 -- Note: broker/gateway/destination/msg_template live in the Desk schema
 -- (shared catalogs, single source of truth); Router owns session runtime
 -- state + the journal.
@@ -41,9 +41,9 @@ CREATE TABLE IF NOT EXISTS router.session (
 );
 
 -- ---------------------------------------------------------------------------
--- Fills (data-model §2.3 — ORDER_TRANSACTION + ORDER_TRANSACTION_FIX_TAG).
+-- Fills (data-model §2.3 - ORDER_TRANSACTION + ORDER_TRANSACTION_FIX_TAG).
 -- Router is the SOLE writer (execution normalization); no other service
--- reads these at runtime — Desk's blotter rides the fill events.
+-- reads these at runtime - Desk's blotter rides the fill events.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS router.order_transaction (
  transaction_id UUID PRIMARY KEY, -- exec id
@@ -91,7 +91,7 @@ BEGIN
  EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY', tbl);
  EXECUTE format('ALTER TABLE %s FORCE ROW LEVEL SECURITY', tbl);
  -- Suffix BEFORE %I quoting: `limit` alone is fine but the concatenation
- -- `"limit"_select` is invalid SQL — build 'limit_select' unquoted
+ -- `"limit"_select` is invalid SQL - build 'limit_select' unquoted
  -- (desk-store DO-block memory: reserved-word table names are the
  -- classic failure class).
  EXECUTE format('DROP POLICY IF EXISTS %1$I ON %2$s;
@@ -108,7 +108,7 @@ CREATE POLICY %1$I ON %2$s FOR DELETE USING (sentin8_context_initialized() AND e
  END LOOP;
 END $$;
 
--- Local outbox + audit journal (DBX §6.7 / §6.8 — shell-generated DDL).
+-- Local outbox + audit journal (DBX §6.7 / §6.8 - shell-generated DDL).
 CREATE TABLE IF NOT EXISTS router.outbox (
  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
  env_id UUID NOT NULL,
@@ -177,7 +177,7 @@ CREATE POLICY audit_journal_dml ON router.audit_journal
 
 -- ---------------------------------------------------------------------------
 -- Per-service role grants + search_path (bank8-ledger pattern; the CLI
--- creates the role BEFORE this SQL — grant-before-role incident rule).
+-- creates the role BEFORE this SQL - grant-before-role incident rule).
 -- Grants live in db trade8 (this database); the scope→role map row is
 -- upserted by `vertical enroll` from --section=pg_roles.
 -- ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ BEGIN
    GRANT USAGE, SELECT ON SEQUENCES TO trade8_router_service;
  END IF;
 END $$;
--- Declared cross-schema reads (SELECT-only) — mirrors registration.rs
+-- Declared cross-schema reads (SELECT-only) - mirrors registration.rs
 -- PgRole.cross_schema_grants; `vertical enroll` owns their application,
 -- this block only re-asserts them idempotently after a role recreation.
 DO $$ BEGIN

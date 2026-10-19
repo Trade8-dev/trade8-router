@@ -3,9 +3,9 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Trade8:Router
 // SPDX-License-Identifier: Apache-2.0
 
-//! Trade8:Router admin UI — RFW pages + data endpoints.
+//! Trade8:Router admin UI - RFW pages + data endpoints.
 //!
-//! Secrets (credentials_ref) are never displayed — only their existence.
+//! Secrets (credentials_ref) are never displayed - only their existence.
 
 use axum::extract::{Path, Query, State};
 use axum::http::HeaderMap;
@@ -71,7 +71,7 @@ fn card(title: &str, body: &str) -> RemoteWidget {
     tag = "trade8-admin",
 )]
 
-/// `GET /v1/admin/ui/{page}` — RFW definitions.
+/// `GET /v1/admin/ui/{page}` - RFW definitions.
 pub async fn get_admin_ui(
     State(_st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
@@ -117,7 +117,7 @@ pub async fn get_admin_ui(
         "fees" => AdminPage::new("Fee Formulas")
             .widget(card(
                 "Charger DSL",
-                "Formula types: per_share / per_order / percent_notional / banded — destination-default fallback applies when no formula matches.",
+                "Formula types: per_share / per_order / percent_notional / banded - destination-default fallback applies when no formula matches.",
             ))
             .widget(table(
                 vec![
@@ -153,7 +153,7 @@ type Qp = std::collections::HashMap<String, String>;
     tag = "trade8-admin",
 )]
 
-/// `GET /v1/admin/sessions` — session rows from the DB.
+/// `GET /v1/admin/sessions` - session rows from the DB.
 pub async fn admin_sessions(
     State(st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
@@ -215,7 +215,7 @@ pub async fn admin_sessions(
     tag = "trade8-admin",
 )]
 
-/// `GET /v1/admin/journal` — journal window (latest N frames, hex preview).
+/// `GET /v1/admin/journal` - journal window (latest N frames, hex preview).
 pub async fn admin_journal(
     State(st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
@@ -251,7 +251,7 @@ pub async fn admin_journal(
     Ok(Json(serde_json::json!(rows
         .into_iter()
         .map(|(seq, destination_id, direction, msg_type, payload, at)| {
-            // hex preview — the wall never shows raw control bytes
+            // hex preview - the wall never shows raw control bytes
             let preview = payload
                 .iter()
                 .take(48)
@@ -278,7 +278,7 @@ pub async fn admin_journal(
     tag = "trade8-admin",
 )]
 
-/// `GET /v1/admin/fees` — charger formula table (engine copy).
+/// `GET /v1/admin/fees` - charger formula table (engine copy).
 pub async fn admin_fees(
     State(st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
@@ -327,7 +327,7 @@ pub async fn admin_fees(
     tag = "trade8-admin",
 )]
 
-/// `POST /v1/admin/sessions/{id}/reset` — RFW POST-alias reset.
+/// `POST /v1/admin/sessions/{id}/reset` - RFW POST-alias reset.
 pub async fn admin_reset_session(
     State(st): State<std::sync::Arc<RouterState>>,
     headers: HeaderMap,
