@@ -11,8 +11,8 @@
 
 mod admin_ui;
 mod core;
-mod registration;
 mod openapi;
+mod registration;
 mod store;
 mod wiring;
 
@@ -268,12 +268,14 @@ pub(crate) async fn list_sessions(
         Ok(rows) => Ok(Json(SessionsResponse {
             sessions: rows
                 .into_iter()
-                .map(|(destination_id, outgoing_seq, incoming_seq, state)| SessionRow {
-                    destination_id,
-                    state,
-                    outgoing_seq: outgoing_seq.max(0) as u64,
-                    incoming_seq: incoming_seq.max(0) as u64,
-                })
+                .map(
+                    |(destination_id, outgoing_seq, incoming_seq, state)| SessionRow {
+                        destination_id,
+                        state,
+                        outgoing_seq: outgoing_seq.max(0) as u64,
+                        incoming_seq: incoming_seq.max(0) as u64,
+                    },
+                )
                 .collect(),
         })),
         Err(e) => {
@@ -405,14 +407,16 @@ pub(crate) async fn list_messages(
         Ok(rows) => Ok(Json(MessagesResponse {
             messages: rows
                 .into_iter()
-                .map(|(seq, destination_id, direction, msg_type, payload, at)| MsgRow {
-                    seq,
-                    destination_id,
-                    direction,
-                    msg_type: msg_type.unwrap_or_default(),
-                    size: payload.len() as i64,
-                    at,
-                })
+                .map(
+                    |(seq, destination_id, direction, msg_type, payload, at)| MsgRow {
+                        seq,
+                        destination_id,
+                        direction,
+                        msg_type: msg_type.unwrap_or_default(),
+                        size: payload.len() as i64,
+                        at,
+                    },
+                )
                 .collect(),
         })),
         Err(e) => {

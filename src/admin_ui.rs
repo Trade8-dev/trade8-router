@@ -190,18 +190,19 @@ pub async fn admin_sessions(
     .fetch_all(&mut *conn)
     .await
     .map_err(sentin8::shell::err_db)?;
-    Ok(Json(rows
-        .into_iter()
-        .map(
-            |(destination_id, outgoing_seq, incoming_seq, state, last_heartbeat)| {
-                serde_json::json!({
-                    "destination_id": destination_id, "state": state,
-                    "outgoing_seq": outgoing_seq, "incoming_seq": incoming_seq,
-                    "last_heartbeat": last_heartbeat,
-                })
-            }
-        )
-        .collect::<Vec<_>>()))
+    Ok(Json(
+        rows.into_iter()
+            .map(
+                |(destination_id, outgoing_seq, incoming_seq, state, last_heartbeat)| {
+                    serde_json::json!({
+                        "destination_id": destination_id, "state": state,
+                        "outgoing_seq": outgoing_seq, "incoming_seq": incoming_seq,
+                        "last_heartbeat": last_heartbeat,
+                    })
+                },
+            )
+            .collect::<Vec<_>>(),
+    ))
 }
 #[utoipa::path(
     get,
@@ -248,23 +249,24 @@ pub async fn admin_journal(
     let rows = crate::store::read_journal(&mut conn, env, dest, 0, limit)
         .await
         .map_err(sentin8::shell::err_db)?;
-    Ok(Json(rows
-        .into_iter()
-        .map(|(seq, destination_id, direction, msg_type, payload, at)| {
-            // hex preview - the wall never shows raw control bytes
-            let preview = payload
-                .iter()
-                .take(48)
-                .map(|b| format!("{b:02x}"))
-                .collect::<Vec<_>>()
-                .join("");
-            serde_json::json!({
-                "seq": seq, "destination_id": destination_id,
-                "direction": direction, "msg_type": msg_type,
-                "preview_hex": preview, "at": at,
+    Ok(Json(
+        rows.into_iter()
+            .map(|(seq, destination_id, direction, msg_type, payload, at)| {
+                // hex preview - the wall never shows raw control bytes
+                let preview = payload
+                    .iter()
+                    .take(48)
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<Vec<_>>()
+                    .join("");
+                serde_json::json!({
+                    "seq": seq, "destination_id": destination_id,
+                    "direction": direction, "msg_type": msg_type,
+                    "preview_hex": preview, "at": at,
+                })
             })
-        })
-        .collect::<Vec<_>>()))
+            .collect::<Vec<_>>(),
+    ))
 }
 #[utoipa::path(
     get,

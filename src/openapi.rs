@@ -12,7 +12,6 @@ use utoipa::OpenApi;
 
 pub mod w {
 
-
     /// Spec wrapper for the inline health closure (binary has no named fn).
     #[utoipa::path(
         get,
@@ -24,7 +23,6 @@ pub mod w {
         tag = "router",
     )]
     pub async fn router_health() {}
-
 }
 
 /// OpenAPI spec for the router API.
