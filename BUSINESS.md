@@ -148,4 +148,4 @@
 
 ---
 
-**Design attribution:** trade8:router and its underlying concepts were designed by Hamid Jahanzad <Hamid@Jahanzad.com>.
+**Architecture & Design:** trade8:router and its underlying concepts were designed by [Hamid Jahanzad](https://www.linkedin.com/in/hamidjahanzad/).
