@@ -101,14 +101,14 @@ fn extend_router(
         .route(
             "/v1/health",
             // Carries the binary's build identity (`version`/`build`,
-            // BUILDID-1) so captain's monitor populates `make status`'s
+            //) so captain's monitor populates `make status`'s
             // VERSION column - the consuming BINARY's identity.
             get(|| async { Json(serde_json::json!({"status": "ok", "service": "trade8:router", "version": sentin8::build_info::id(), "build": sentin8::build_info::build_hash()})) }),
         )
 }
-// ── Typed response DTOs (OAPEC-9) ──────────────────────────────────────
+// ── Typed response DTOs ──────────────────────────────────────
 
-/// Liveness/build identity (OAPEC-9 typed body).
+/// Liveness/build identity (typed body).
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct HealthInfo {
     /// Always `ok` while serving.
@@ -661,18 +661,17 @@ impl sentin8::shield::admin::HasPolicyAdmin for RouterState {
     }
 }
 
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // Admin data-endpoint tests (test-architecture design §7). The REAL
 // router's POST-alias mutation route (`/v1/admin/sessions/{id}/reset`)
 // + the admin read gate, over `oneshot` with the harness JWKS issuer.
 // The DB leg asserts the counter reset through the service role.
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // The harness inside references `sentin8_auth::jwks` - the Auth SERVER
 // crate - which this repo never declared as a dependency (no vertical
 // pins the auth server; imports go through the platform SDK facade,
 // which does not re-export jwks). It therefore never compiled as-is.
-// Disabled pending the SDK-side test-harness OIDC stand-in surface
-// (backlog story T8-HARNESS-1).
+// Disabled pending the SDK-side test-harness OIDC stand-in surface.
 #[cfg(all(test, feature = "handler_tests"))]
 mod admin_alias_tests {
     use super::*;

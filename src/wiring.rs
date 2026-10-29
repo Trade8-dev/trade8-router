@@ -28,9 +28,9 @@ use uuid::Uuid;
 
 use crate::core::{DestinationLink, RouterEngine};
 
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // Message templates - typed field-source maps
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 
 /// One template field: FIX tag ← value source.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
@@ -248,9 +248,9 @@ pub async fn load_routes(
     Ok(links)
 }
 
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // Fill persistence
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 
 /// Persist a normalized fill: `order_transaction` row + FIX-tag
 /// preservation + `fill:executed` outbox event - one tx. Idempotent on
@@ -381,9 +381,9 @@ fn fee_json(f: &FeeBreakdown) -> serde_json::Value {
     })
 }
 
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // Desk-order consumer
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 
 /// Spawn the desk-family consumer: accepted orders route outbound.
 /// Wire messages are journaled + `order:routed` outbox event; shadow
@@ -566,9 +566,9 @@ async fn route_accepted_order(
     HandleOutcome::Ack
 }
 
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 // Gateway delivery
-// ---------------------------------------------------------------------------
+// ------------------------------------------------------------------------
 
 /// Deliver a rendered order to an HTTP destination (the gateway
 /// adapter pattern): POST the wire bytes, record the gateway's
