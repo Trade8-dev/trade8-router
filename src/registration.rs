@@ -8,8 +8,6 @@
 //! Output via `--print-registration`. Scopes per master design §9; pages
 //! per router design §6.
 
-use utoipa::OpenApi;
-
 use sentin8::registration::{
     AdminScope, AdminUi, AdminUiPage, CrossSchemaGrant, ErrorCode, M2mGrant, PgRole, PolicySetDecl,
     Registration, RelationDecl, SqlMigration,
